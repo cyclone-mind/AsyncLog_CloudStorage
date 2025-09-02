@@ -39,3 +39,13 @@
 
 # debug information files
 *.dwo
+
+.cache/
+.claude/
+
+docs/
+
+linux_development_notes.md
+notes.md
+
+vcpkg_installed/
