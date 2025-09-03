@@ -49,3 +49,4 @@ linux_development_notes.md
 notes.md
 
 vcpkg_installed/
+cmake-build-debug/

@@ -1,14 +1,15 @@
 #pragma once
+#include "./backlog_code/SendBackupLog.hpp"
 #include "AsyncBuffer.hpp"
 #include "AsyncWorker.hpp"
 #include "Level.hpp"
 #include "LogFlush.hpp"
 #include "Message.hpp"
+#include "ThreadPool.hpp"
 #include <cstdarg>
-
 #ifndef ASYNCLOG_CLOUDSTORAGE_ASYNCLOGGER_HPP
 #define ASYNCLOG_CLOUDSTORAGE_ASYNCLOGGER_HPP
-
+extern ThreadPool *tp; // 若在头文件表示"这个变量存在，但不在这里定义"
 namespace mylog {
 class AsyncLogger {
   public:
@@ -19,7 +20,7 @@ class AsyncLogger {
           asyncworker(std::make_shared<AsyncWorker>( // 启动异步工作器
               std::bind(&AsyncLogger::RealFlush, this, std::placeholders::_1),
               type)) {}
-    std::string Name() const { return logger_name_; }
+    [[nodiscard]] std::string Name() const { return logger_name_; }
     void Debug(const std::string &file, size_t line, const std::string format,
                ...) {
         va_list args;
@@ -33,12 +34,80 @@ class AsyncLogger {
         free(ret);
         ret = nullptr;
     }
+    void Info(const std::string &file, const size_t line,
+              const std::string format, ...) {
+        va_list va;
+        va_start(va, format);
+        char *ret;
+        if (vasprintf(&ret, format.c_str(), va) == -1)
+            perror("vasprintf failed!!!: ");
+        va_end(va);
+
+        serialize(LogLevel::value::INFO, file, line, ret);
+
+        free(ret);
+        ret = nullptr;
+    };
+    void Warn(const std::string &file, const size_t line,
+              const std::string format, ...) {
+        va_list va;
+        va_start(va, format);
+        char *ret;
+        if (vasprintf(&ret, format.c_str(), va) == -1)
+            perror("vasprintf failed!!!: ");
+        va_end(va);
+
+        serialize(LogLevel::value::WARN, file, line, ret);
+
+        free(ret);
+        ret = nullptr;
+    };
+    void Error(const std::string &file, const size_t line,
+               const std::string format, ...) {
+        va_list va;
+        va_start(va, format);
+        char *ret;
+        if (vasprintf(&ret, format.c_str(), va) == -1)
+            perror("vasprintf failed!!!: ");
+        va_end(va);
+
+        serialize(LogLevel::value::ERROR, file, line, ret);
+
+        free(ret);
+        ret = nullptr;
+    };
+    void Fatal(const std::string &file, const size_t line,
+               const std::string format, ...) {
+        va_list va;
+        va_start(va, format);
+        char *ret;
+        if (vasprintf(&ret, format.c_str(), va) == -1)
+            perror("vasprintf failed!!!: ");
+        va_end(va);
+
+        serialize(LogLevel::value::FATAL, file, line, ret);
+
+        free(ret);
+        ret = nullptr;
+    };
 
   protected:
     void serialize(LogLevel::value level, const std::string &file, size_t line,
                    char *log) {
         LogMessage logmessage(level, file, line, log, logger_name_);
         std::string data = logmessage.format();
+        if (level == LogLevel::value::ERROR || level == LogLevel::value::FATAL) {
+            try
+            {
+                auto ret = tp->addTask(send_backlog, data);
+                ret.get();
+            }
+            catch (const std::runtime_error &e)
+            {
+                // 该线程池没有把stop设置为true的逻辑，所以不做处理
+                std::cout << __FILE__ << __LINE__ << "thread pool closed" << std::endl;
+            }
+        }
         Flush(data.c_str(), data.size());
     }
     void Flush(const char *data, size_t len) { asyncworker->Push(data, len); }
