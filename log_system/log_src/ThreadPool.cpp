@@ -55,8 +55,8 @@ void ThreadPool::manager(void) {
 
         // 线程退出
         if (idel > cur / 2 && cur > m_minThread) {
-            cout << "Manager: Too many idle threads, exiting some threads"
-                 << endl;
+            // cout << "Manager: Too many idle threads, exiting some threads"
+            //      << endl;
             m_exitThread.store(2);
             m_condition.notify_all();
             // 等待直到有线程添加了退出
@@ -79,7 +79,7 @@ void ThreadPool::manager(void) {
             }
         } else if (idel == 0 && cur < m_maxThread &&
                    !m_stop.load()) { // 添加停止检查
-            cout << "Manager: No idle threads, creating new thread" << endl;
+            // cout << "Manager: No idle threads, creating new thread" << endl;
             thread t(&ThreadPool::worker, this);
             m_workers.insert(make_pair(t.get_id(), std::move(t)));
             m_curThread++;
@@ -98,37 +98,37 @@ void ThreadPool::worker(void) {
         {
             unique_lock<mutex> locker(m_queueMutex);
             while (m_tasks.empty() && !m_stop.load()) {
-                cout << "Worker thread " << tid << " waiting for task" << endl;
+                // cout << "Worker thread " << tid << " waiting for task" << endl;
                 m_condition.wait(locker);
 
                 // 检查是否需要退出
                 if (m_exitThread.load() > 0) {
-                    cout << "Worker thread " << tid << " received exit signal"
-                         << endl;
+                    // cout << "Worker thread " << tid << " received exit signal"
+                    //      << endl;
                     m_curThread--;
                     m_idleThread--;
                     m_exitThread--;
                     lock_guard<mutex> idLocker(m_idsMutex);
                     m_ids.emplace_back(tid);
-                    cout << "Worker thread " << tid << " added to exit list"
-                         << endl;
+                    // cout << "Worker thread " << tid << " added to exit list"
+                    //      << endl;
                     return;
                 }
             }
 
             if (!m_tasks.empty()) {
-                cout << "Worker thread " << tid << " got a task" << endl;
+                // cout << "Worker thread " << tid << " got a task" << endl;
                 task = std::move(m_tasks.front());
                 m_tasks.pop();
             }
         }
 
         if (task) {
-            cout << "Worker thread " << tid << " executing task" << endl;
+            // cout << "Worker thread " << tid << " executing task" << endl;
             m_idleThread--;
             task();
             m_idleThread++;
-            cout << "Worker thread " << tid << " finished task" << endl;
+            // cout << "Worker thread " << tid << " finished task" << endl;
         }
     }
 

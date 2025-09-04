@@ -155,8 +155,7 @@ struct LogConfig {
     size_t buffer_size;   // 缓冲区基础容量
     size_t threshold;     // 倍数扩容阈值
     size_t linear_growth; // 线性增长容量
-    size_t
-        flush_log; // 控制日志同步到磁盘的时机，默认为0,1调用fflush，2调用fsync
+    size_t flush_log; // 控制日志同步到磁盘的时机，默认为 0,1 调用 fflush，2 调用fsync
     std::string backup_addr;
     uint16_t backup_port;
     size_t thread_count;

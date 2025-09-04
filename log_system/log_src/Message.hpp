@@ -23,7 +23,7 @@ struct LogMessage {
         tm t{};
         localtime_r(&timestamp_, &t);
         char buf[128];
-        strftime(buf, sizeof(buf), "%H:%M:%S", &t);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
         const std::string tmp1 = '[' + std::string(buf) + "][";
         const std::string tmp2 = "][" + std::string(LogLevel::ToString(level_)) +
                                  "][" + logger_name_ + "][" + filename_ + ":" +
